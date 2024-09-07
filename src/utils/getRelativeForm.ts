@@ -9,6 +9,7 @@ const chordQualities: { [key: string]: string } = {
   m9: 'm',
   m11: 'm',
   m13: 'm',
+  m7b5: 'm', // Added this line to treat m7b5 as 'm'
   '7': '7',
   '9': '7',
   '11': '7',
