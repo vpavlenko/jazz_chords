@@ -13,12 +13,12 @@ ComposedBy = Joseph Kosma
 DBKeySig = Bb
 TimeSig = 4 4
 Bars = 32
- Cm7 | F7 | BbM7 | EbM7 |
+ Cm7 | F7 | Bbmaj7 | Ebmaj7 |
  Am7b5 | D7 | Gm7 | Gm6 |
- Cm7 | F7 | BbM7 | EbM7 |
+ Cm7 | F7 | Bbmaj7 | Ebmaj7 |
  Am7b5 | D7 | Gm6 | Gm6 |
  D7 | D7 | Gm6 | Gm6 |
- Cm7 | F7 | BbM7 | BbM7 |
+ Cm7 | F7 | Bbmaj7 | Bbmaj7 |
  Am7b5 | D7 | Gm7 C7 | Fm7 Bb7 |
  Am7b5 | D7 | Gm6 | G7 |
 `;
@@ -85,7 +85,12 @@ function App() {
     }
 
     const [, key, suffix] = match;
-    const actualSuffix = suffix || 'major';
+    let actualSuffix = suffix || 'major';
+
+    // Handle M7 as maj7
+    if (actualSuffix === 'M7') {
+      actualSuffix = 'maj7';
+    }
 
     setDebug((prev) => prev + `\nParsing: Key: ${key}, Suffix: ${actualSuffix}`);
 
