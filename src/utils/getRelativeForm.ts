@@ -75,8 +75,25 @@ function parseChord(chord: string): [string, string] {
 }
 
 function getInterval(from: string, to: string): number {
-  const fromIndex = noteOrder.indexOf(from);
-  const toIndex = noteOrder.indexOf(to);
+  const normalizeRoot = (root: string) => {
+    if (root.length === 2 && root[1] === 'b') {
+      const flatToSharp: { [key: string]: string } = {
+        Db: 'C#',
+        Eb: 'D#',
+        Gb: 'F#',
+        Ab: 'G#',
+        Bb: 'A#',
+      };
+      return flatToSharp[root] || root;
+    }
+    return root;
+  };
+
+  const normalizedFrom = normalizeRoot(from);
+  const normalizedTo = normalizeRoot(to);
+
+  const fromIndex = noteOrder.indexOf(normalizedFrom);
+  const toIndex = noteOrder.indexOf(normalizedTo);
   let interval = toIndex - fromIndex;
   if (interval < -6) interval += 12;
   if (interval > 5) interval -= 12;
