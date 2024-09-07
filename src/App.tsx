@@ -61,8 +61,16 @@ function App() {
 
   const [currentStandard, setCurrentStandard] = useState(autumnLeavesData);
 
+  const parseChords = useCallback((chordString: string): string[] => {
+    return chordString
+      .split('|')
+      .map((chord) => chord.trim())
+      .filter((chord) => chord !== '');
+  }, []);
+
   useEffect(() => {
-    setJazzStandard(parseJazzStandard(currentStandard));
+    const parsedStandard = parseJazzStandard(currentStandard);
+    setJazzStandard(parsedStandard);
   }, [currentStandard]);
 
   useEffect(() => {
@@ -244,6 +252,27 @@ function App() {
     setIsPlaying(false);
   }, [sampler]);
 
+  const playChord = useCallback(
+    (chord: string) => {
+      if (!sampler) return;
+
+      const simplifiedChord = chord.replace(/#5#9|#5|#9/, '');
+      const midiNotes = parseChord(simplifiedChord);
+
+      midiNotes.forEach((midiNote, index) => {
+        const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
+        sampler.triggerAttackRelease(freq, '1n', Tone.now() + index * 0.1);
+      });
+
+      setDebug(
+        `Playing chord: ${chord}\nSimplified: ${simplifiedChord}\nMIDI notes: ${midiNotes.join(
+          ', '
+        )}`
+      );
+    },
+    [sampler, parseChord]
+  );
+
   return (
     <div className="App">
       <Header title="Jazz Standard Player" />
@@ -276,14 +305,18 @@ function App() {
           {jazzStandard.chordLines.map((line, index) => (
             <div
               key={index}
-              className={`flex space-x-4 ${
+              className={`flex flex-wrap space-x-2 ${
                 index === currentLine && isPlaying ? 'bg-yellow-200' : ''
               }`}
             >
               {line.map((chord, chordIndex) => (
-                <span key={chordIndex} className="font-mono">
+                <button
+                  key={chordIndex}
+                  className="font-mono border border-gray-300 rounded px-2 py-1 m-1 hover:bg-gray-100"
+                  onClick={() => playChord(chord)}
+                >
                   {chord}
-                </span>
+                </button>
               ))}
             </div>
           ))}

@@ -8,36 +8,39 @@ interface JazzStandard {
   metadata: Record<string, string>;
 }
 
-export function parseJazzStandard(input: string): JazzStandard {
-  const lines = input
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line);
-  const metadata: Record<string, string> = {};
-  const chordLines: string[][] = [];
-
-  let currentLine: string[] = [];
-
-  for (const line of lines) {
-    if (line.includes('=')) {
-      const [key, value] = line.split('=').map((part) => part.trim());
-      metadata[key] = value;
-    } else if (line.includes('|')) {
-      currentLine = line
-        .split('|')
-        .map((chord) => chord.trim())
-        .filter((chord) => chord);
-      chordLines.push(currentLine);
-    }
-  }
-
-  return {
-    title: metadata['Title'] || '',
-    composedBy: metadata['ComposedBy'] || '',
-    dbKeySig: metadata['DBKeySig'] || '',
-    timeSig: metadata['TimeSig'] || '',
-    bars: parseInt(metadata['Bars'] || '0', 10),
-    chordLines,
-    metadata,
+export function parseJazzStandard(data: string): JazzStandard {
+  const lines = data.trim().split('\n');
+  const jazzStandard: JazzStandard = {
+    title: '',
+    composedBy: '',
+    dbKeySig: '',
+    timeSig: '',
+    bars: 0,
+    chordLines: [],
+    metadata: {},
   };
+
+  lines.forEach((line) => {
+    if (line.startsWith('Title =')) {
+      jazzStandard.title = line.split('=')[1].trim();
+    } else if (line.startsWith('ComposedBy =')) {
+      jazzStandard.composedBy = line.split('=')[1].trim();
+    } else if (line.startsWith('DBKeySig =')) {
+      jazzStandard.dbKeySig = line.split('=')[1].trim();
+    } else if (line.startsWith('TimeSig =')) {
+      jazzStandard.timeSig = line.split('=')[1].trim();
+    } else if (line.startsWith('Bars =')) {
+      jazzStandard.bars = parseInt(line.split('=')[1].trim());
+    } else if (line.trim() !== '') {
+      jazzStandard.chordLines.push(
+        line
+          .trim()
+          .split('|')
+          .map((chord) => chord.trim())
+          .filter((chord) => chord !== '')
+      );
+    }
+  });
+
+  return jazzStandard;
 }
