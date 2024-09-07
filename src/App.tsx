@@ -6,6 +6,7 @@ import { useCallback, useState, useEffect } from 'react';
 import guitarChords, { ChordPosition } from './components/guitarChords';
 import { parseJazzStandard } from './utils/parseJazzStandard';
 import { Transport } from 'tone';
+import { getRelativeForm } from './utils/getRelativeForm';
 
 const autumnLeavesData = `
 Title = Autumn Leaves
@@ -60,6 +61,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [currentStandard, setCurrentStandard] = useState(autumnLeavesData);
+  const [relativeForm, setRelativeForm] = useState<string[][]>([]);
 
   const parseChords = useCallback((chordString: string): string[] => {
     return chordString
@@ -71,6 +73,7 @@ function App() {
   useEffect(() => {
     const parsedStandard = parseJazzStandard(currentStandard);
     setJazzStandard(parsedStandard);
+    setRelativeForm(getRelativeForm(parsedStandard.chordLines));
   }, [currentStandard]);
 
   useEffect(() => {
@@ -324,25 +327,45 @@ function App() {
         <p>Composed by: {jazzStandard.composedBy}</p>
         <p>Key: {jazzStandard.dbKeySig}</p>
         <p>Time Signature: {jazzStandard.timeSig}</p>
-        <div className="mt-4">
-          {jazzStandard.chordLines.map((line, index) => (
-            <div
-              key={index}
-              className={`flex flex-wrap space-x-2 ${
-                index === currentLine && isPlaying ? 'bg-yellow-200' : ''
-              }`}
-            >
-              {line.map((chord, chordIndex) => (
-                <button
-                  key={chordIndex}
-                  className="font-mono border border-gray-300 rounded px-2 py-1 m-1 hover:bg-gray-100"
-                  onClick={() => playChord(chord)}
-                >
-                  {chord}
-                </button>
-              ))}
-            </div>
-          ))}
+        <div className="mt-4 flex">
+          <div className="w-1/2">
+            {jazzStandard.chordLines.map((line, index) => (
+              <div
+                key={index}
+                className={`flex flex-wrap space-x-2 ${
+                  index === currentLine && isPlaying ? 'bg-yellow-200' : ''
+                }`}
+              >
+                {line.map((chord, chordIndex) => (
+                  <button
+                    key={chordIndex}
+                    className="font-mono border border-gray-300 px-2 py-1 m-1 hover:bg-gray-100"
+                    onClick={() => playChord(chord)}
+                  >
+                    {chord}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="w-1/2 ml-4">
+            {relativeForm.map((line, index) => (
+              <div key={index} className="flex flex-wrap space-x-2">
+                {line.map((relativeChord, chordIndex) => (
+                  <span key={chordIndex} className="font-mono border border-gray-300 px-2 py-1 m-1">
+                    {relativeChord.split(' ').map((token, tokenIndex) => (
+                      <span
+                        key={tokenIndex}
+                        className={`inline-block ${tokenIndex > 0 ? 'ml-1' : ''}`}
+                      >
+                        {token}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       <div style={{ whiteSpace: 'pre-wrap', marginTop: '20px' }}>
