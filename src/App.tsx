@@ -329,6 +329,7 @@ function App() {
         <p>Time Signature: {jazzStandard.timeSig}</p>
         <div className="mt-4 flex">
           <div className="w-1/2">
+            <h3 className="font-bold mb-2">Original Chords</h3>
             {jazzStandard.chordLines.map((line, index) => (
               <div
                 key={index}
@@ -349,6 +350,7 @@ function App() {
             ))}
           </div>
           <div className="w-1/2 ml-4">
+            <h3 className="font-bold mb-2">Relative Form</h3>
             {relativeForm.map((line, index) => (
               <div key={index} className="flex flex-wrap space-x-2">
                 {line.map((relativeChord, chordIndex) => (

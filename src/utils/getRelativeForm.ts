@@ -30,21 +30,37 @@ const chordQualities: { [key: string]: string } = {
 const noteOrder = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 function getRelativeForm(chordLines: string[][]): string[][] {
-  return chordLines.map((line) => {
-    let prevRoot: string | null = null;
-    return line.map((chord) => {
-      const [root, quality] = parseChord(chord);
-      let relativeChord = chordQualities[quality] || quality;
+  // Flatten and remove repeated chords
+  const flattenedChords = chordLines.flatMap((line) =>
+    line.filter((chord, index, array) => index === 0 || chord !== array[index - 1])
+  );
 
-      if (prevRoot) {
-        const interval = getInterval(prevRoot, root);
-        relativeChord = `${relativeChord} (${interval > 0 ? '+' : ''}${interval})`;
-      }
+  let prevRoot: string | null = null;
+  const relativeChords = flattenedChords.map((chord) => {
+    const [root, quality] = parseChord(chord);
+    let relativeChord = chordQualities[quality] || quality;
 
-      prevRoot = root;
-      return relativeChord;
-    });
+    if (prevRoot) {
+      const interval = getInterval(prevRoot, root);
+      relativeChord = `${relativeChord} (${interval > 0 ? '+' : ''}${interval})`;
+    }
+
+    prevRoot = root;
+    return relativeChord;
   });
+
+  // Split the relative chords back into lines of the same length as the original
+  const result: string[][] = [];
+  let currentIndex = 0;
+  for (const line of chordLines) {
+    const lineLength = line.filter(
+      (chord, index, array) => index === 0 || chord !== array[index - 1]
+    ).length;
+    result.push(relativeChords.slice(currentIndex, currentIndex + lineLength));
+    currentIndex += lineLength;
+  }
+
+  return result;
 }
 
 function parseChord(chord: string): [string, string] {
