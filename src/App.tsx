@@ -7,6 +7,7 @@ import guitarChords, { ChordPosition } from './components/guitarChords';
 import { parseJazzStandard } from './utils/parseJazzStandard';
 import { Transport } from 'tone';
 import { getRelativeForm } from './utils/getRelativeForm';
+import { calculateAggregateStats } from './utils/calculateAggregateStats';
 
 const autumnLeavesData = `
 Title = Autumn Leaves
@@ -63,6 +64,9 @@ function App() {
   const [currentStandard, setCurrentStandard] = useState(autumnLeavesData);
   const [relativeForm, setRelativeForm] = useState<string[][]>([]);
 
+  const [activeTab, setActiveTab] = useState('chords');
+  const [aggregateStats, setAggregateStats] = useState<any>(null);
+
   const parseChords = useCallback((chordString: string): string[] => {
     return chordString
       .split('|')
@@ -73,7 +77,12 @@ function App() {
   useEffect(() => {
     const parsedStandard = parseJazzStandard(currentStandard);
     setJazzStandard(parsedStandard);
-    setRelativeForm(getRelativeForm(parsedStandard.chordLines));
+    const relForm = getRelativeForm(parsedStandard.chordLines);
+    setRelativeForm(relForm);
+
+    // Calculate aggregate stats
+    const stats = calculateAggregateStats(relForm);
+    setAggregateStats(stats);
   }, [currentStandard]);
 
   useEffect(() => {
@@ -323,59 +332,113 @@ function App() {
       </Button>
       <Button onClick={stopAllSounds}>Panic (Stop All Sounds)</Button>
       <div className="mt-8">
-        <h2 className="text-2xl font-bold">{jazzStandard.title}</h2>
-        <p>Composed by: {jazzStandard.composedBy}</p>
-        <p>Key: {jazzStandard.dbKeySig}</p>
-        <p>Time Signature: {jazzStandard.timeSig}</p>
-        <div className="mt-4 flex">
-          <div className="w-1/2">
-            <h3 className="font-bold mb-2">Original Chords</h3>
-            {jazzStandard.chordLines.map((line, index) => (
-              <div
-                key={index}
-                className={`flex flex-wrap space-x-2 ${
-                  index === currentLine && isPlaying ? 'bg-yellow-200' : ''
-                }`}
-              >
-                {line.map((chord, chordIndex) => (
-                  <button
-                    key={chordIndex}
-                    className="font-mono border border-gray-300 px-2 py-1 m-1 hover:bg-gray-100"
-                    onClick={() => playChord(chord)}
+        <div className="flex mb-4">
+          <button
+            className={`mr-2 px-4 py-2 ${
+              activeTab === 'chords' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('chords')}
+          >
+            Chords
+          </button>
+          <button
+            className={`px-4 py-2 ${
+              activeTab === 'stats' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('stats')}
+          >
+            Stats
+          </button>
+        </div>
+
+        {activeTab === 'chords' ? (
+          <>
+            <h2 className="text-2xl font-bold">{jazzStandard.title}</h2>
+            <p>Composed by: {jazzStandard.composedBy}</p>
+            <p>Key: {jazzStandard.dbKeySig}</p>
+            <p>Time Signature: {jazzStandard.timeSig}</p>
+            <div className="mt-4 flex">
+              <div className="w-1/2">
+                <h3 className="font-bold mb-2">Original Chords</h3>
+                {jazzStandard.chordLines.map((line, index) => (
+                  <div
+                    key={index}
+                    className={`flex flex-wrap space-x-2 ${
+                      index === currentLine && isPlaying ? 'bg-yellow-200' : ''
+                    }`}
                   >
-                    {chord}
-                  </button>
+                    {line.map((chord, chordIndex) => (
+                      <button
+                        key={chordIndex}
+                        className="font-mono border border-gray-300 px-2 py-1 m-1 hover:bg-gray-100"
+                        onClick={() => playChord(chord)}
+                      >
+                        {chord}
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-          <div className="w-1/2 ml-4">
-            <h3 className="font-bold mb-2">Relative Form</h3>
-            {relativeForm.map((line, index) => (
-              <div key={index} className="flex flex-wrap space-x-2">
-                {line.map((relativeChord, chordIndex) => (
-                  <span key={chordIndex} className="font-mono border border-gray-300 px-2 py-1 m-1">
-                    {relativeChord.split(' ').map((token, tokenIndex) => (
+              <div className="w-1/2 ml-4">
+                <h3 className="font-bold mb-2">Relative Form</h3>
+                {relativeForm.map((line, index) => (
+                  <div key={index} className="flex flex-wrap space-x-2">
+                    {line.map((relativeChord, chordIndex) => (
                       <span
-                        key={tokenIndex}
-                        className={`inline-block ${tokenIndex > 0 ? 'ml-1' : ''} ${
-                          token.startsWith('(') ? 'text-blue-600' : ''
-                        }`}
+                        key={chordIndex}
+                        className="font-mono border border-gray-300 px-2 py-1 m-1"
                       >
-                        {token}
+                        {relativeChord.split(' ').map((token, tokenIndex) => (
+                          <span
+                            key={tokenIndex}
+                            className={`inline-block ${tokenIndex > 0 ? 'ml-1' : ''} ${
+                              token.startsWith('(') ? 'text-blue-600' : ''
+                            }`}
+                          >
+                            {token}
+                          </span>
+                        ))}
                       </span>
                     ))}
-                  </span>
+                  </div>
                 ))}
               </div>
-            ))}
+            </div>
+          </>
+        ) : (
+          <div className="stats-container">
+            <h3 className="font-bold mb-2">Aggregate Stats</h3>
+            {aggregateStats && (
+              <>
+                <TokenStats title="Single Tokens" data={aggregateStats.singleTokens} />
+                <TokenStats title="Token Pairs" data={aggregateStats.tokenPairs} />
+                <TokenStats title="Token Triples" data={aggregateStats.tokenTriples} />
+                <TokenStats title="Token Quadruples" data={aggregateStats.tokenQuadruples} />
+                {/* ... up to Token Octuples ... */}
+              </>
+            )}
           </div>
-        </div>
+        )}
       </div>
       <div style={{ whiteSpace: 'pre-wrap', marginTop: '20px' }}>
         Debug Output:
         {debug}
       </div>
+    </div>
+  );
+}
+
+function TokenStats({ title, data }: { title: string; data: [string, number][] }) {
+  return (
+    <div className="mb-4">
+      <h4 className="font-semibold">{title}</h4>
+      <ul>
+        {data.slice(0, 10).map(([token, count], index) => (
+          <li key={index}>
+            {token}: {count}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
