@@ -9,6 +9,7 @@ import { Transport } from 'tone';
 import { getRelativeForm } from './utils/getRelativeForm';
 import { calculateAggregateStats } from './utils/calculateAggregateStats';
 import { combineMultipleAggregateStats } from './utils/combineAggregateStats';
+import { CORPUS } from './corpus';
 
 const autumnLeavesData = `
 Title = Autumn Leaves
@@ -69,6 +70,7 @@ function App() {
   const [aggregateStats, setAggregateStats] = useState<any>(null);
   const [allStandardsStats, setAllStandardsStats] = useState<any>(null);
   const [loadedStandardsStats, setLoadedStandardsStats] = useState<{ [key: string]: any }>({});
+  const [loadedStandards, setLoadedStandards] = useState<string[]>([]);
 
   const parseChords = useCallback((chordString: string): string[] => {
     return chordString
@@ -92,6 +94,11 @@ function App() {
       ...prevStats,
       [parsedStandard.title]: stats,
     }));
+
+    // Add to loadedStandards if not already present
+    setLoadedStandards((prev) =>
+      prev.includes(parsedStandard.title) ? prev : [...prev, parsedStandard.title]
+    );
   }, [currentStandard]);
 
   // Calculate allStandardsStats whenever loadedStandardsStats changes
@@ -323,6 +330,10 @@ function App() {
     [sampler, parseChord]
   );
 
+  const loadStandard = (standardData: string) => {
+    setCurrentStandard(standardData);
+  };
+
   return (
     <div className="App">
       <Header title="Jazz Standard Player" />
@@ -444,6 +455,33 @@ function App() {
           </div>
         )}
       </div>
+      <div className="mt-4">
+        <h3 className="font-bold mb-2">Load Jazz Standards from Corpus</h3>
+        <div className="flex flex-wrap gap-2">
+          {CORPUS.slice(0, 10).map((standard, index) => {
+            const title = parseJazzStandard(standard).title;
+            return (
+              <Button key={index} onClick={() => loadStandard(standard)} disabled={!sampler}>
+                {title}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+      {activeTab === 'stats' && (
+        <div className="mt-4">
+          <h3 className="font-bold mb-2">Aggregate Statistics</h3>
+          <div>
+            <h4 className="font-semibold">Current Standard: {jazzStandard.title}</h4>
+            <pre>{JSON.stringify(aggregateStats, null, 2)}</pre>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold">All Loaded Standards</h4>
+            <p>Loaded Standards: {loadedStandards.join(', ')}</p>
+            <pre>{JSON.stringify(allStandardsStats, null, 2)}</pre>
+          </div>
+        </div>
+      )}
       <div style={{ whiteSpace: 'pre-wrap', marginTop: '20px' }}>
         Debug Output:
         {debug}
