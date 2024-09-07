@@ -23,6 +23,34 @@ Bars = 32
  Am7b5 | D7 | Gm6 | G7 |
 `;
 
+const blueBossaData = `
+Title = Blue Bossa
+ComposedBy = Kenny Dorham
+DBKeySig = Eb
+TimeSig = 4 4
+Bars = 16
+ Cm6 | Cm6 | Fm9 | Fm9 |
+ Dm7 | G7 | Cm6 | Cm6 |
+ Ebm9 | Ab13 | Dbmaj7 | Dbmaj7 |
+ Dm7 | G7 | Cm6 | Dm7 G7 |
+`;
+
+const satinDollData = `
+Title = Satin Doll
+ComposedBy = Billy Strayhorn and Duke Ellington
+DBKeySig = C
+TimeSig = 4 4
+Bars = 32
+ Dm7 G7 | Dm7 G7 | Em7 A7 | Em7 A7 |
+ D7 | Db7 | C | A7 |
+ Dm7 G7 | Dm7 G7 | Em7 A7 | Em7 A7 |
+ D7 | Db7 | C | C |
+ Gm7 | C7 | F | F |
+ Am7 | D7 | G7 | A7 |
+ Dm7 G7 | Dm7 G7 | Em7 A7 | Em7 A7 |
+ D7 | Db7 | C | C |
+`;
+
 function App() {
   const [sampler, setSampler] = useState<Tone.Sampler | null>(null);
   const [debug, setDebug] = useState<string>('');
@@ -30,6 +58,12 @@ function App() {
   const [jazzStandard, setJazzStandard] = useState(parseJazzStandard(autumnLeavesData));
   const [currentLine, setCurrentLine] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const [currentStandard, setCurrentStandard] = useState(autumnLeavesData);
+
+  useEffect(() => {
+    setJazzStandard(parseJazzStandard(currentStandard));
+  }, [currentStandard]);
 
   useEffect(() => {
     initializePiano();
@@ -179,8 +213,10 @@ function App() {
     jazzStandard.chordLines.forEach((line, lineIndex) => {
       line.forEach((chord, chordIndex) => {
         Transport.schedule((time) => {
-          const midiNotes = parseChord(chord);
+          const simplifiedChord = chord.replace(/#5#9|#5|#9/, ''); // Simplify chord extensions
+          const midiNotes = parseChord(simplifiedChord);
           setDebug((prev) => prev + `\nLine ${lineIndex + 1}, Chord ${chordIndex + 1}: ${chord}`);
+          setDebug((prev) => prev + `\nSimplified: ${simplifiedChord}`);
           setDebug((prev) => prev + `\nMIDI notes: ${midiNotes.join(', ')}`);
 
           midiNotes.forEach((midiNote, noteIndex) => {
@@ -217,6 +253,15 @@ function App() {
       </Button>
       <Button onClick={scheduleChordProgression} disabled={!sampler}>
         Play Chord Progression
+      </Button>
+      <Button onClick={() => setCurrentStandard(autumnLeavesData)} disabled={!sampler}>
+        Load Autumn Leaves
+      </Button>
+      <Button onClick={() => setCurrentStandard(blueBossaData)} disabled={!sampler}>
+        Load Blue Bossa
+      </Button>
+      <Button onClick={() => setCurrentStandard(satinDollData)} disabled={!sampler}>
+        Load Satin Doll
       </Button>
       <Button onClick={scheduleJazzStandard} disabled={!sampler}>
         Play Jazz Standard
