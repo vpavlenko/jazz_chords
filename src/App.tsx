@@ -4,10 +4,31 @@ import { ReactComponent as Logo } from 'assets/favicon.svg';
 import * as Tone from 'tone';
 import { useCallback, useState, useEffect } from 'react';
 import guitarChords, { ChordPosition } from './components/guitarChords';
+import { parseJazzStandard } from './utils/parseJazzStandard';
+
+const autumnLeavesData = `
+Title = Autumn Leaves
+ComposedBy = Joseph Kosma
+DBKeySig = Bb
+TimeSig = 4 4
+Bars = 32
+ Cm7 | F7 | BbM7 | EbM7 |
+ Am7b5 | D7 | Gm7 | Gm6 |
+ Cm7 | F7 | BbM7 | EbM7 |
+ Am7b5 | D7 | Gm6 | Gm6 |
+ D7 | D7 | Gm6 | Gm6 |
+ Cm7 | F7 | BbM7 | BbM7 |
+ Am7b5 | D7 | Gm7 C7 | Fm7 Bb7 |
+ Am7b5 | D7 | Gm6 | G7 |
+`;
 
 function App() {
   const [sampler, setSampler] = useState<Tone.Sampler | null>(null);
   const [debug, setDebug] = useState<string>('');
+
+  const [jazzStandard, setJazzStandard] = useState(parseJazzStandard(autumnLeavesData));
+  const [currentLine, setCurrentLine] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     initializePiano();
@@ -133,9 +154,42 @@ function App() {
     Tone.Transport.cancel();
   }, [sampler]);
 
+  const playJazzStandard = useCallback(() => {
+    if (!sampler) {
+      console.log('Piano not loaded yet');
+      return;
+    }
+
+    setIsPlaying(true);
+    setCurrentLine(0);
+
+    const playLine = (lineIndex: number) => {
+      if (lineIndex >= jazzStandard.chordLines.length) {
+        setIsPlaying(false);
+        return;
+      }
+
+      const line = jazzStandard.chordLines[lineIndex];
+      const now = Tone.now();
+
+      line.forEach((chord, index) => {
+        const midiNotes = parseChord(chord);
+        midiNotes.forEach((midiNote, noteIndex) => {
+          const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
+          sampler.triggerAttackRelease(freq, '1n', now + index + noteIndex * 0.1);
+        });
+      });
+
+      setCurrentLine(lineIndex);
+      setTimeout(() => playLine(lineIndex + 1), line.length * 1000);
+    };
+
+    playLine(0);
+  }, [sampler, jazzStandard, parseChord]);
+
   return (
     <div className="App">
-      <Header title="Piano Chord Player" />
+      <Header title="Jazz Standard Player" />
       <Logo height={100} width={100} />
       <Button onClick={playG7Chord} disabled={!sampler}>
         Play G7 Chord
@@ -144,6 +198,28 @@ function App() {
         Play Chord Progression
       </Button>
       <Button onClick={stopAllSounds}>Panic (Stop All Sounds)</Button>
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold">{jazzStandard.title}</h2>
+        <p>Composed by: {jazzStandard.composedBy}</p>
+        <p>Key: {jazzStandard.dbKeySig}</p>
+        <p>Time Signature: {jazzStandard.timeSig}</p>
+        <div className="mt-4">
+          {jazzStandard.chordLines.map((line, index) => (
+            <div
+              key={index}
+              className={`flex space-x-4 ${
+                index === currentLine && isPlaying ? 'bg-yellow-200' : ''
+              }`}
+            >
+              {line.map((chord, chordIndex) => (
+                <span key={chordIndex} className="font-mono">
+                  {chord}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
       <div style={{ whiteSpace: 'pre-wrap', marginTop: '20px' }}>
         Debug Output:
         {debug}
