@@ -358,7 +358,9 @@ function App() {
                     {relativeChord.split(' ').map((token, tokenIndex) => (
                       <span
                         key={tokenIndex}
-                        className={`inline-block ${tokenIndex > 0 ? 'ml-1' : ''}`}
+                        className={`inline-block ${tokenIndex > 0 ? 'ml-1' : ''} ${
+                          token.startsWith('(') ? 'text-blue-600' : ''
+                        }`}
                       >
                         {token}
                       </span>

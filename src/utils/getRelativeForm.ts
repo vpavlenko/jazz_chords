@@ -36,13 +36,16 @@ function getRelativeForm(chordLines: string[][]): string[][] {
   );
 
   let prevRoot: string | null = null;
-  const relativeChords = flattenedChords.map((chord) => {
+  const relativeChords = flattenedChords.map((chord, index) => {
     const [root, quality] = parseChord(chord);
     let relativeChord = chordQualities[quality] || quality;
 
     if (prevRoot) {
       const interval = getInterval(prevRoot, root);
-      relativeChord = `${relativeChord} (${interval > 0 ? '+' : ''}${interval})`;
+      relativeChord = `(${interval > 0 ? '+' : ''}${interval}) ${relativeChord}`;
+    } else {
+      // For the first chord, we'll just show its quality
+      relativeChord = `(start) ${relativeChord}`;
     }
 
     prevRoot = root;
