@@ -36,7 +36,7 @@ export function parseJazzStandard(data: string): JazzStandard {
         line
           .trim()
           .split('|')
-          .map((chord) => chord.trim())
+          .flatMap((bar) => bar.trim().split(/\s+/))
           .filter((chord) => chord !== '')
       );
     }

@@ -64,7 +64,7 @@ function App() {
   const parseChords = useCallback((chordString: string): string[] => {
     return chordString
       .split('|')
-      .map((chord) => chord.trim())
+      .flatMap((bar) => bar.trim().split(/\s+/))
       .filter((chord) => chord !== '');
   }, []);
 
