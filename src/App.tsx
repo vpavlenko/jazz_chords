@@ -166,6 +166,7 @@ function App() {
 
     setIsPlaying(true);
     setCurrentLine(0);
+    setDebug(''); // Clear previous debug info
 
     Transport.cancel();
     Transport.stop();
@@ -174,6 +175,9 @@ function App() {
       line.forEach((chord, chordIndex) => {
         Transport.schedule((time) => {
           const midiNotes = parseChord(chord);
+          setDebug((prev) => prev + `\nLine ${lineIndex + 1}, Chord ${chordIndex + 1}: ${chord}`);
+          setDebug((prev) => prev + `\nMIDI notes: ${midiNotes.join(', ')}`);
+
           midiNotes.forEach((midiNote, noteIndex) => {
             const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
             sampler.triggerAttackRelease(freq, '1n', time + noteIndex * 0.1);
