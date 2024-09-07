@@ -120,9 +120,29 @@ function App() {
   };
 
   const parseChord = (chordName: string): number[] => {
-    const match = chordName.match(/^([A-G][b#]?)(.*)$/);
+    setDebug((prev) => prev + `\nOriginal chord: ${chordName}`);
+
+    // Replace flat keys with sharp equivalents
+    const flatToSharp: { [key: string]: string } = {
+      Db: 'C#',
+      Eb: 'D#',
+      Gb: 'F#',
+      Ab: 'G#',
+      Bb: 'A#',
+    };
+
+    let modifiedChordName = chordName;
+    for (const [flat, sharp] of Object.entries(flatToSharp)) {
+      if (chordName.startsWith(flat)) {
+        modifiedChordName = chordName.replace(flat, sharp);
+        setDebug((prev) => prev + `\nFlat key replaced: ${chordName} -> ${modifiedChordName}`);
+        break;
+      }
+    }
+
+    const match = modifiedChordName.match(/^([A-G][b#]?)(.*)$/);
     if (!match) {
-      setDebug((prev) => prev + `\nInvalid chord name: ${chordName}`);
+      setDebug((prev) => prev + `\nInvalid chord name: ${modifiedChordName}`);
       return [];
     }
 
@@ -134,24 +154,27 @@ function App() {
       actualSuffix = 'maj7';
     }
 
-    setDebug((prev) => prev + `\nParsing: Key: ${key}, Suffix: ${actualSuffix}`);
+    setDebug((prev) => prev + `\nParsed chord: Key: ${key}, Suffix: ${actualSuffix}`);
 
     const chordVariations = guitarChords.chords[key];
     if (!chordVariations) {
-      setDebug((prev) => prev + `\nKey not found: ${key}`);
+      setDebug((prev) => prev + `\nKey not found in guitarChords: ${key}`);
       return [];
     }
 
     const chordVariation = chordVariations.find((chord) => chord.suffix === actualSuffix);
     if (!chordVariation) {
-      setDebug((prev) => prev + `\nSuffix not found: ${actualSuffix} for key ${key}`);
+      setDebug(
+        (prev) => prev + `\nSuffix not found in guitarChords: ${actualSuffix} for key ${key}`
+      );
       return [];
     }
 
     const chordPosition: ChordPosition = chordVariation.positions[0];
     const midiNotes = chordPosition.midi || [];
 
-    setDebug((prev) => prev + `\nChord: ${chordName}\nMIDI: ${midiNotes.join(', ')}`);
+    setDebug((prev) => prev + `\nFinal chord: ${key}${actualSuffix}`);
+    setDebug((prev) => prev + `\nMIDI notes: ${midiNotes.join(', ')}`);
     return midiNotes;
   };
 
