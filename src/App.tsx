@@ -5,6 +5,7 @@ import * as Tone from 'tone';
 import { useCallback, useState, useEffect } from 'react';
 import guitarChords, { ChordPosition } from './components/guitarChords';
 import { parseJazzStandard } from './utils/parseJazzStandard';
+import { Transport } from 'tone';
 
 const autumnLeavesData = `
 Title = Autumn Leaves
@@ -107,7 +108,7 @@ function App() {
     return midiNotes;
   };
 
-  const playChordProgression = useCallback(() => {
+  const scheduleChordProgression = useCallback(() => {
     if (!sampler) {
       console.log('Piano not loaded yet');
       return;
@@ -115,46 +116,49 @@ function App() {
 
     setDebug(''); // Clear previous debug info
     const chordProgression = ['Dm7', 'G7', 'Cmaj7', 'Fmaj7'];
-    const now = Tone.now();
+
+    Transport.cancel(); // Clear any previously scheduled events
+    Transport.stop(); // Stop the transport if it's running
 
     chordProgression.forEach((chordName, index) => {
       const midiNotes = parseChord(chordName);
-      midiNotes.forEach((midiNote, noteIndex) => {
-        const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
-        setDebug(
-          (prev) =>
-            prev + `\nPlaying: ${chordName} - Note ${noteIndex}: MIDI ${midiNote}, Freq ${freq}`
-        );
-        sampler.triggerAttackRelease(freq, '2n', now + index + noteIndex * 0.1);
-      });
+      Transport.schedule((time) => {
+        midiNotes.forEach((midiNote, noteIndex) => {
+          const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
+          setDebug(
+            (prev) =>
+              prev + `\nPlaying: ${chordName} - Note ${noteIndex}: MIDI ${midiNote}, Freq ${freq}`
+          );
+          sampler.triggerAttackRelease(freq, '2n', time + noteIndex * 0.1);
+        });
+      }, index);
     });
-  }, [sampler]);
 
-  const playG7Chord = useCallback(() => {
+    Transport.start();
+  }, [sampler, parseChord]);
+
+  const scheduleG7Chord = useCallback(() => {
     if (!sampler) {
       console.log('Piano not loaded yet');
       return;
     }
 
-    const now = Tone.now();
+    Transport.cancel();
+    Transport.stop();
 
-    // G7 chord notes (low to high): G2, B2, F3, G3, D4
-    sampler.triggerAttackRelease('G2', '2n', now);
-    sampler.triggerAttackRelease('B2', '2n', now + 0.05);
-    sampler.triggerAttackRelease('F3', '2n', now + 0.1);
-    sampler.triggerAttackRelease('G3', '2n', now + 0.15);
-    sampler.triggerAttackRelease('D4', '2n', now + 0.2);
+    Transport.schedule((time) => {
+      // G7 chord notes (low to high): G2, B2, F3, G3, D4
+      sampler.triggerAttackRelease('G2', '2n', time);
+      sampler.triggerAttackRelease('B2', '2n', time + 0.05);
+      sampler.triggerAttackRelease('F3', '2n', time + 0.1);
+      sampler.triggerAttackRelease('G3', '2n', time + 0.15);
+      sampler.triggerAttackRelease('D4', '2n', time + 0.2);
+    }, 0);
+
+    Transport.start();
   }, [sampler]);
 
-  const stopAllSounds = useCallback(() => {
-    if (sampler) {
-      sampler.releaseAll();
-    }
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
-  }, [sampler]);
-
-  const playJazzStandard = useCallback(() => {
+  const scheduleJazzStandard = useCallback(() => {
     if (!sampler) {
       console.log('Piano not loaded yet');
       return;
@@ -163,39 +167,50 @@ function App() {
     setIsPlaying(true);
     setCurrentLine(0);
 
-    const playLine = (lineIndex: number) => {
-      if (lineIndex >= jazzStandard.chordLines.length) {
-        setIsPlaying(false);
-        return;
-      }
+    Transport.cancel();
+    Transport.stop();
 
-      const line = jazzStandard.chordLines[lineIndex];
-      const now = Tone.now();
-
-      line.forEach((chord, index) => {
-        const midiNotes = parseChord(chord);
-        midiNotes.forEach((midiNote, noteIndex) => {
-          const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
-          sampler.triggerAttackRelease(freq, '1n', now + index + noteIndex * 0.1);
-        });
+    jazzStandard.chordLines.forEach((line, lineIndex) => {
+      line.forEach((chord, chordIndex) => {
+        Transport.schedule((time) => {
+          const midiNotes = parseChord(chord);
+          midiNotes.forEach((midiNote, noteIndex) => {
+            const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
+            sampler.triggerAttackRelease(freq, '1n', time + noteIndex * 0.1);
+          });
+          setCurrentLine(lineIndex);
+        }, lineIndex * 4 + chordIndex);
       });
+    });
 
-      setCurrentLine(lineIndex);
-      setTimeout(() => playLine(lineIndex + 1), line.length * 1000);
-    };
+    Transport.schedule(() => {
+      setIsPlaying(false);
+    }, jazzStandard.chordLines.length * 4);
 
-    playLine(0);
+    Transport.start();
   }, [sampler, jazzStandard, parseChord]);
+
+  const stopAllSounds = useCallback(() => {
+    if (sampler) {
+      sampler.releaseAll();
+    }
+    Transport.cancel(); // Clear all scheduled events
+    Transport.stop(); // Stop the transport
+    setIsPlaying(false);
+  }, [sampler]);
 
   return (
     <div className="App">
       <Header title="Jazz Standard Player" />
       <Logo height={100} width={100} />
-      <Button onClick={playG7Chord} disabled={!sampler}>
+      <Button onClick={scheduleG7Chord} disabled={!sampler}>
         Play G7 Chord
       </Button>
-      <Button onClick={playChordProgression} disabled={!sampler}>
+      <Button onClick={scheduleChordProgression} disabled={!sampler}>
         Play Chord Progression
+      </Button>
+      <Button onClick={scheduleJazzStandard} disabled={!sampler}>
+        Play Jazz Standard
       </Button>
       <Button onClick={stopAllSounds}>Panic (Stop All Sounds)</Button>
       <div className="mt-8">
