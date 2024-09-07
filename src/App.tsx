@@ -8,6 +8,7 @@ import { parseJazzStandard } from './utils/parseJazzStandard';
 import { Transport } from 'tone';
 import { getRelativeForm } from './utils/getRelativeForm';
 import { calculateAggregateStats } from './utils/calculateAggregateStats';
+import { combineMultipleAggregateStats } from './utils/combineAggregateStats';
 
 const autumnLeavesData = `
 Title = Autumn Leaves
@@ -66,6 +67,8 @@ function App() {
 
   const [activeTab, setActiveTab] = useState('chords');
   const [aggregateStats, setAggregateStats] = useState<any>(null);
+  const [allStandardsStats, setAllStandardsStats] = useState<any>(null);
+  const [loadedStandardsStats, setLoadedStandardsStats] = useState<{ [key: string]: any }>({});
 
   const parseChords = useCallback((chordString: string): string[] => {
     return chordString
@@ -80,10 +83,22 @@ function App() {
     const relForm = getRelativeForm(parsedStandard.chordLines);
     setRelativeForm(relForm);
 
-    // Calculate aggregate stats
+    // Calculate aggregate stats for the current standard
     const stats = calculateAggregateStats(relForm);
     setAggregateStats(stats);
+
+    // Update loadedStandardsStats
+    setLoadedStandardsStats((prevStats) => ({
+      ...prevStats,
+      [parsedStandard.title]: stats,
+    }));
   }, [currentStandard]);
+
+  // Calculate allStandardsStats whenever loadedStandardsStats changes
+  useEffect(() => {
+    const allStats = combineMultipleAggregateStats(Object.values(loadedStandardsStats));
+    setAllStandardsStats(allStats);
+  }, [loadedStandardsStats]);
 
   useEffect(() => {
     initializePiano();
@@ -407,14 +422,23 @@ function App() {
           </>
         ) : (
           <div className="stats-container">
-            <h3 className="font-bold mb-2">Aggregate Stats</h3>
+            <h3 className="font-bold mb-2">Current Standard Stats</h3>
             {aggregateStats && (
               <>
                 <TokenStats title="Single Tokens" data={aggregateStats.singleTokens} />
                 <TokenStats title="Token Pairs" data={aggregateStats.tokenPairs} />
                 <TokenStats title="Token Triples" data={aggregateStats.tokenTriples} />
                 <TokenStats title="Token Quadruples" data={aggregateStats.tokenQuadruples} />
-                {/* ... up to Token Octuples ... */}
+              </>
+            )}
+
+            <h3 className="font-bold mt-6 mb-2">Aggregated Stats (All Standards)</h3>
+            {allStandardsStats && (
+              <>
+                <TokenStats title="Single Tokens" data={allStandardsStats.singleTokens} />
+                <TokenStats title="Token Pairs" data={allStandardsStats.tokenPairs} />
+                <TokenStats title="Token Triples" data={allStandardsStats.tokenTriples} />
+                <TokenStats title="Token Quadruples" data={allStandardsStats.tokenQuadruples} />
               </>
             )}
           </div>
