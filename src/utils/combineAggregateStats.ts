@@ -1,8 +1,25 @@
-export function combineAggregateStats(stats1: any, stats2: any): any {
-  const combinedStats: any = {};
+import { AggregateStats } from './calculateAggregateStats';
+
+export function combineAggregateStats(
+  stats1: AggregateStats,
+  stats2: AggregateStats
+): AggregateStats {
+  const combinedStats: AggregateStats = {
+    singleTokens: [],
+    tokenPairs: [],
+    tokenTriples: [],
+    tokenQuadruples: [],
+    tokenQuintuples: [],
+    tokenSextuples: [],
+    tokenSeptuples: [],
+    tokenOctuples: [],
+  };
 
   for (const key in stats1) {
-    combinedStats[key] = combineTokenCounts(stats1[key], stats2[key]);
+    combinedStats[key as keyof AggregateStats] = combineTokenCounts(
+      stats1[key as keyof AggregateStats],
+      stats2[key as keyof AggregateStats]
+    );
   }
 
   return combinedStats;
@@ -25,7 +42,7 @@ function combineTokenCounts(
   return Array.from(combinedCounts.entries()).sort((a, b) => b[1] - a[1]);
 }
 
-export function combineMultipleAggregateStats(statsArray: any[]): any {
+export function combineMultipleAggregateStats(statsArray: AggregateStats[]): AggregateStats | null {
   if (statsArray.length === 0) return null;
   if (statsArray.length === 1) return statsArray[0];
 

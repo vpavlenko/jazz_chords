@@ -7,7 +7,7 @@ import guitarChords, { ChordPosition } from './components/guitarChords';
 import { parseJazzStandard } from './utils/parseJazzStandard';
 import { Transport } from 'tone';
 import { getRelativeForm } from './utils/getRelativeForm';
-import { calculateAggregateStats } from './utils/calculateAggregateStats';
+import { calculateAggregateStats, AggregateStats } from './utils/calculateAggregateStats';
 import { combineMultipleAggregateStats } from './utils/combineAggregateStats';
 import { CORPUS } from './corpus';
 
@@ -67,10 +67,7 @@ function App() {
   const [relativeForm, setRelativeForm] = useState<string[][]>([]);
 
   const [activeTab, setActiveTab] = useState('chords');
-  const [aggregateStats, setAggregateStats] = useState<any>(null);
-  const [allStandardsStats, setAllStandardsStats] = useState<any>(null);
-  const [loadedStandardsStats, setLoadedStandardsStats] = useState<{ [key: string]: any }>({});
-  const [loadedStandards, setLoadedStandards] = useState<string[]>([]);
+  const [allStandardsStats, setAllStandardsStats] = useState<AggregateStats | null>(null);
 
   const parseChords = useCallback((chordString: string): string[] => {
     return chordString
@@ -84,28 +81,19 @@ function App() {
     setJazzStandard(parsedStandard);
     const relForm = getRelativeForm(parsedStandard.chordLines);
     setRelativeForm(relForm);
-
-    // Calculate aggregate stats for the current standard
-    const stats = calculateAggregateStats(relForm);
-    setAggregateStats(stats);
-
-    // Update loadedStandardsStats
-    setLoadedStandardsStats((prevStats) => ({
-      ...prevStats,
-      [parsedStandard.title]: stats,
-    }));
-
-    // Add to loadedStandards if not already present
-    setLoadedStandards((prev) =>
-      prev.includes(parsedStandard.title) ? prev : [...prev, parsedStandard.title]
-    );
   }, [currentStandard]);
 
-  // Calculate allStandardsStats whenever loadedStandardsStats changes
   useEffect(() => {
-    const allStats = combineMultipleAggregateStats(Object.values(loadedStandardsStats));
-    setAllStandardsStats(allStats);
-  }, [loadedStandardsStats]);
+    // Load all standards from the corpus on component mount
+    const allStats = CORPUS.map((standard) => {
+      const parsedStandard = parseJazzStandard(standard);
+      const relForm = getRelativeForm(parsedStandard.chordLines);
+      return calculateAggregateStats(relForm);
+    });
+
+    const combinedStats = combineMultipleAggregateStats(allStats);
+    setAllStandardsStats(combinedStats);
+  }, []);
 
   useEffect(() => {
     initializePiano();
@@ -433,55 +421,11 @@ function App() {
           </>
         ) : (
           <div className="stats-container">
-            <h3 className="font-bold mb-2">Current Standard Stats</h3>
-            {aggregateStats && (
-              <>
-                <TokenStats title="Single Tokens" data={aggregateStats.singleTokens} />
-                <TokenStats title="Token Pairs" data={aggregateStats.tokenPairs} />
-                <TokenStats title="Token Triples" data={aggregateStats.tokenTriples} />
-                <TokenStats title="Token Quadruples" data={aggregateStats.tokenQuadruples} />
-              </>
-            )}
-
-            <h3 className="font-bold mt-6 mb-2">Aggregated Stats (All Standards)</h3>
-            {allStandardsStats && (
-              <>
-                <TokenStats title="Single Tokens" data={allStandardsStats.singleTokens} />
-                <TokenStats title="Token Pairs" data={allStandardsStats.tokenPairs} />
-                <TokenStats title="Token Triples" data={allStandardsStats.tokenTriples} />
-                <TokenStats title="Token Quadruples" data={allStandardsStats.tokenQuadruples} />
-              </>
-            )}
+            <h3 className="font-bold mb-2">Aggregate Statistics for All Standards</h3>
+            <StatsDisplay stats={allStandardsStats} />
           </div>
         )}
       </div>
-      <div className="mt-4">
-        <h3 className="font-bold mb-2">Load Jazz Standards from Corpus</h3>
-        <div className="flex flex-wrap gap-2">
-          {CORPUS.slice(0, 10).map((standard, index) => {
-            const title = parseJazzStandard(standard).title;
-            return (
-              <Button key={index} onClick={() => loadStandard(standard)} disabled={!sampler}>
-                {title}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-      {activeTab === 'stats' && (
-        <div className="mt-4">
-          <h3 className="font-bold mb-2">Aggregate Statistics</h3>
-          <div>
-            <h4 className="font-semibold">Current Standard: {jazzStandard.title}</h4>
-            <pre>{JSON.stringify(aggregateStats, null, 2)}</pre>
-          </div>
-          <div className="mt-4">
-            <h4 className="font-semibold">All Loaded Standards</h4>
-            <p>Loaded Standards: {loadedStandards.join(', ')}</p>
-            <pre>{JSON.stringify(allStandardsStats, null, 2)}</pre>
-          </div>
-        </div>
-      )}
       <div style={{ whiteSpace: 'pre-wrap', marginTop: '20px' }}>
         Debug Output:
         {debug}
@@ -490,17 +434,34 @@ function App() {
   );
 }
 
-function TokenStats({ title, data }: { title: string; data: [string, number][] }) {
+function StatsDisplay({ stats }: { stats: AggregateStats | null }) {
+  if (!stats) return null;
+
+  const tokenTypes: Array<{ name: string; key: keyof AggregateStats }> = [
+    { name: 'Single Tokens', key: 'singleTokens' },
+    { name: 'Token Pairs', key: 'tokenPairs' },
+    { name: 'Token Triples', key: 'tokenTriples' },
+    { name: 'Token Quadruples', key: 'tokenQuadruples' },
+    { name: 'Token Quintuples', key: 'tokenQuintuples' },
+    { name: 'Token Sextuples', key: 'tokenSextuples' },
+    { name: 'Token Septuples', key: 'tokenSeptuples' },
+    { name: 'Token Octuples', key: 'tokenOctuples' },
+  ];
+
   return (
-    <div className="mb-4">
-      <h4 className="font-semibold">{title}</h4>
-      <ul>
-        {data.slice(0, 10).map(([token, count], index) => (
-          <li key={index}>
-            {token}: {count}
-          </li>
-        ))}
-      </ul>
+    <div className="grid grid-cols-2 gap-4">
+      {tokenTypes.map(({ name, key }) => (
+        <div key={key} className="border p-4 rounded">
+          <h4 className="font-semibold mb-2">{name}</h4>
+          <ul>
+            {stats[key].slice(0, 10).map(([token, count], index) => (
+              <li key={index} className="mb-1">
+                <span className="font-mono">{token}</span>: {count}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,20 +1,68 @@
 type TokenCounts = { [key: string]: number };
 
-export function calculateAggregateStats(relativeForm: string[][]) {
-  const allTokens = relativeForm.flat().flatMap((chord) => chord.split(' '));
+export interface AggregateStats {
+  singleTokens: [string, number][];
+  tokenPairs: [string, number][];
+  tokenTriples: [string, number][];
+  tokenQuadruples: [string, number][];
+  tokenQuintuples: [string, number][];
+  tokenSextuples: [string, number][];
+  tokenSeptuples: [string, number][];
+  tokenOctuples: [string, number][];
+}
 
-  const singleTokens = countTokens(allTokens);
-  const tokenPairs = countNGrams(allTokens, 2);
-  const tokenTriples = countNGrams(allTokens, 3);
-  const tokenQuadruples = countNGrams(allTokens, 4);
-  // ... up to token octuples
+export function calculateAggregateStats(relativeForm: string[][]): AggregateStats {
+  const singleTokens: TokenCounts = {};
+  const tokenPairs: TokenCounts = {};
+  const tokenTriples: TokenCounts = {};
+  const tokenQuadruples: TokenCounts = {};
+  const tokenQuintuples: TokenCounts = {};
+  const tokenSextuples: TokenCounts = {};
+  const tokenSeptuples: TokenCounts = {};
+  const tokenOctuples: TokenCounts = {};
+
+  relativeForm.forEach((line) => {
+    line.forEach((chord, index) => {
+      const tokens = chord.split(' ');
+
+      // Single tokens
+      tokens.forEach((token) => {
+        singleTokens[token] = (singleTokens[token] || 0) + 1;
+      });
+
+      // Token pairs to octuples
+      for (let i = 2; i <= 8; i++) {
+        if (index + i - 1 < line.length) {
+          const sequence = line.slice(index, index + i).join(' ');
+          const targetObject =
+            i === 2
+              ? tokenPairs
+              : i === 3
+              ? tokenTriples
+              : i === 4
+              ? tokenQuadruples
+              : i === 5
+              ? tokenQuintuples
+              : i === 6
+              ? tokenSextuples
+              : i === 7
+              ? tokenSeptuples
+              : tokenOctuples;
+          targetObject[sequence] = (targetObject[sequence] || 0) + 1;
+        }
+      }
+    });
+  });
 
   return {
-    singleTokens: sortTokenCounts(singleTokens),
-    tokenPairs: sortTokenCounts(tokenPairs),
-    tokenTriples: sortTokenCounts(tokenTriples),
-    tokenQuadruples: sortTokenCounts(tokenQuadruples),
-    // ... up to token octuples
+    singleTokens: sortObjectByValue(singleTokens),
+    tokenPairs: sortObjectByValue(tokenPairs),
+    tokenTriples: sortObjectByValue(tokenTriples),
+    tokenQuadruples: sortObjectByValue(tokenQuadruples),
+    tokenQuintuples: sortObjectByValue(tokenQuintuples),
+    tokenSextuples: sortObjectByValue(tokenSextuples),
+    tokenSeptuples: sortObjectByValue(tokenSeptuples),
+    tokenOctuples: sortObjectByValue(tokenOctuples),
   };
 }
 
@@ -36,4 +84,8 @@ function countNGrams(tokens: string[], n: number): TokenCounts {
 
 function sortTokenCounts(tokenCounts: TokenCounts): [string, number][] {
   return Object.entries(tokenCounts).sort((a, b) => b[1] - a[1]);
+}
+
+function sortObjectByValue(obj: TokenCounts): [string, number][] {
+  return Object.entries(obj).sort((a, b) => b[1] - a[1]);
 }
